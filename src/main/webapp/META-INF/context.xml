@@ -1,0 +1,6 @@
+<Context>
+	<Resource name="jdbc/hydro" auth="Container" type="javax.sql.DataSource"
+		driverClassName="org.postgresql.Driver" url="jdbc:postgresql://localhost/hydro"
+		username="rob" password="nahanni1" maxActive="20" maxIdle="10"
+		maxWait="-1" />
+</Context>

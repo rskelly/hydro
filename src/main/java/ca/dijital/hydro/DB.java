@@ -1,8 +1,9 @@
 package ca.dijital.hydro;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Properties;
+
+import javax.naming.InitialContext;
+import javax.sql.DataSource;
 
 /**
  * Simple class for getting a DB connection.
@@ -17,14 +18,8 @@ public class DB {
 	 */
 	public static Connection getConnection() {
 		try {
-			Class.forName("org.postgresql.Driver").newInstance();
-			
-			Properties props = new Properties();
-			props.setProperty("user", "rob");
-			Connection conn = DriverManager.getConnection(
-					"jdbc:postgresql://localhost/hydro", props);
-			((org.postgresql.PGConnection)conn).addDataType("geometry", Class.forName("org.postgis.PGgeometry"));
-		    ((org.postgresql.PGConnection)conn).addDataType("box3d", Class.forName("org.postgis.PGbox3d"));
+			DataSource ds = (DataSource) new InitialContext().lookup("java:/comp/env/jdbc/hydro");			
+			Connection conn = ds.getConnection();
 		    return conn;
 		} catch (Exception e) {
 			e.printStackTrace();
