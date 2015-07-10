@@ -74,11 +74,13 @@
 			util.clear(list);
 			searchResults = {};
 			result.forEach(function(station) {
-				var sm = new hydro.StationMarker(station, map);
-				if (markers.hasOwnProperty(sm.id)) {
-					sm = markers[sm.id];
+				var sm;
+				if (markers.hasOwnProperty(station.id)) {
+					sm = markers[station.id]
+					sm.update(station);
 				} else {
-					markers[sm.id] = sm;
+					sm = markers[station.id] = new hydro.StationMarker(station, map);
+					sm.on('click', markerClick);
 					map.addOverlay(sm.marker);
 				}
 				var el = document.createElement('a');
