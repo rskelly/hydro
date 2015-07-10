@@ -67,6 +67,11 @@ public class Service {
 	private static final String SQL_STATION = "select * from stations where id=?";
 
 	/**
+	 * Returns the ID of a random station.
+	 */
+	private static final String SQL_RANDOM_STATION = "select id from stations order by random() limit 1";
+
+	/**
 	 * Perform a trigram search against the station names.
 	 */
 	private static final String SQL_SEARCH = "select *, similarity(name, '%s') as s from stations order by s desc limit 100";
@@ -74,7 +79,7 @@ public class Service {
 	/**
 	 * Delete readings for a station.
 	 */
-	private static final String SQL_DELETE_READINGS = "delete from readings where station=?";
+	private static final String SQL_DELETE_READINGS = "delete from readings where id=?";
 
 	/**
 	 * Data file URL template.
@@ -92,10 +97,13 @@ public class Service {
 	public Object getReadings(RestMethodContext ctx) throws Exception {
 		Map<String, String> params = ctx.getPathParameters();
 		String id = params.get("id");
+		if("random".equals(id))
+			id = getRandomStationId();
 		int n = 10;
 		try {
 			n = Integer.parseInt(params.get("n"));
 		} catch (Exception e) {
+			n = 100;
 		}
 		return getReadings(id, n);
 	}
@@ -251,13 +259,14 @@ public class Service {
 				stmt.setDouble(4, discharge);
 				stmt.addBatch();
 			}
+			r.close();
+
 			stmt.executeBatch();
 			stmt.close();
-			conn.commit();
 
 			setLastUpdate(id, conn);
 
-			r.close();
+			conn.commit();
 
 		} catch (SQLException | IOException e) {
 			try {
@@ -498,5 +507,31 @@ public class Service {
 			throw new Exception("Failed to load stations.", e);
 		}
 	}
+
+	/**
+	 * Gets the ID of a random station.
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	public String getRandomStationId() throws Exception {
+		Connection conn = DB.getConnection();
+		try {
+			PreparedStatement stmt = conn.prepareStatement(SQL_RANDOM_STATION);
+			ResultSet rslt = stmt.executeQuery();
+			String id = null;
+			if (rslt.next())
+				id = rslt.getString("id");
+			rslt.close();
+			stmt.close();
+			return id;
+		} finally {
+			try {
+				conn.close();
+			} catch (Exception e) {
+			}
+		}
+	}
+
 
 }

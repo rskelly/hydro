@@ -26,7 +26,12 @@
 	/**
 	 * A global reference to the currently-selected marker.
 	 */
-	StationMarker.currentSelected = null;
+	StationMarker.selected = null;
+	
+	StationMarker.selectedToTop = function() {
+		if(StationMarker.selected)
+			StationMarker.selected.toTop();
+	};
 	
 	StationMarker.prototype = Object.create(util.EvtDisp.prototype, {
 	
@@ -40,7 +45,7 @@
 				this._station = station;
 				var el = document.querySelector(StationMarker.elementSelector).cloneNode(true);
 				el.addEventListener('mouseover', this.show.bind(this));
-				el.addEventListener('mouseout', this.hide.bind(this));
+				//el.addEventListener('mouseout', this.hide.bind(this));
 				el.addEventListener('click', this.click.bind(this));
 				var txt = el.querySelector(StationMarker.nameSelector);
 				txt.textContent = station.name;
@@ -62,6 +67,25 @@
 		},
 		
 		/**
+		 * Moves this marker to the top.
+		 */
+		toTop : {
+			value : function() {
+				this._map.removeOverlay(this.marker);
+				this._map.addOverlay(this.marker);
+			}
+		},
+		
+		/**
+		 * Update the station data.
+		 */
+		update : {
+			value : function(station) {
+				this._station = station;
+			}
+		},
+		
+		/**
 		 * Get the name of the station.
 		 */
 		name : {
@@ -73,6 +97,20 @@
 		 */
 		id : {
 			get : function() { return this._station.id; }
+		},
+		
+		/**
+		 * Get the province of the station.
+		 */
+		prov : {
+			get : function() { return this._station.prov; }
+		},
+		
+		/**
+		 * Get the province of the station.
+		 */
+		lastUpdate : {
+			get : function() { return this._station.lastUpdate; }
 		},
 		
 		/**
@@ -96,9 +134,9 @@
 		 */
 		show : {
 			value : function() {
-				if(StationMarker.currentSelected)
-					StationMarker.currentSelected.hide();
-				StationMarker.currentSelected = this;
+				if(StationMarker.selected && StationMarker.selected != this)
+					StationMarker.selected.hide();
+				StationMarker.selected = this;
 				this._map.removeOverlay(this.marker);
 				this._map.addOverlay(this.marker);
 				this._anim.stop();
@@ -113,7 +151,7 @@
 		 */
 		hide : {
 			value : function() {
-				StationMarker.currentSelected = null;
+				StationMarker.selected = null;
 				this._anim.stop();
 				this._txtAnim.stop();
 				this._anim.start(['style.width', 'style.height'], [10, 10], ['{}px', '{}px']);
