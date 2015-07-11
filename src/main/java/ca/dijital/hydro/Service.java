@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +34,12 @@ public class Service {
 	 * Returns a list of the latest readings for a station, grouped by hour,
 	 * with the latest result for each hour.
 	 */
-	private static final String SQL_LATEST_READINGS = "select distinct on (date_trunc('day', readtime)) readings.*, stations.prov from stations inner join readings using(id) where id=? order by date_trunc('day', readtime) desc limit ?";
+	private static final String SQL_LATEST_READINGS = "select distinct on (date_trunc('hour', readtime)) readings.*, stations.prov from stations inner join readings using(id) where id=? order by date_trunc('hour', readtime) desc, readtime desc limit ?";
 
 	/**
 	 * Gets the age of the last reading for a station in hours.
 	 */
-	private static final String SQL_GET_READING_AGE = "select tz, prov, readtime is not null as hasage, extract(epoch from ?::timestamp with time zone - readtime)/3600.0 as age from stations left join readings using(id) where id=? order by readtime desc limit 1";
+	private static final String SQL_GET_READING_AGE = "select tz, prov, lastupdate is not null as hasage, extract(epoch from current_timestamp - lastupdate)/3600.0 as age from stations where id=?";
 
 	/**
 	 * Insert a reading.
@@ -84,7 +84,7 @@ public class Service {
 	/**
 	 * Data file URL template.
 	 */
-	private static final String URL_TPL = "http://dd.weather.gc.ca/hydrometric/csv/%s/daily/%s_%s_daily_hydrometric.csv";
+	private static final String URL_TPL = "http://dd.weather.gc.ca/hydrometric/csv/%s/hourly/%s_%s_hourly_hydrometric.csv";
 
 	/**
 	 * A REST service method. Provides the list of readings.
@@ -251,10 +251,13 @@ public class Service {
 				} catch (Exception e) {
 					discharge = -9999.0;
 				}
-				readtime = new Timestamp(DatatypeConverter.parseDateTime(row[1].trim()).getTime().getTime());
+				
+				// The JDBC driver doesn't work correctly with the actual timezone, so use UTC.
+				Calendar cal = DatatypeConverter.parseDateTime(row[1].trim());
+				readtime = new Timestamp(cal.getTimeInMillis() - cal.getTimeZone().getOffset(cal.getTimeInMillis()));
 
 				stmt.setString(1, id);
-				stmt.setTimestamp(2, readtime);
+				stmt.setTimestamp(2, readtime, cal);
 				stmt.setDouble(3, level);
 				stmt.setDouble(4, discharge);
 				stmt.addBatch();
@@ -294,8 +297,7 @@ public class Service {
 		checkId(id);
 		try {
 			PreparedStatement stmt = conn.prepareStatement(SQL_GET_READING_AGE);
-			stmt.setTimestamp(1, new java.sql.Timestamp(new Date().getTime()));
-			stmt.setString(2, id);
+			stmt.setString(1, id);
 			ResultSet rslt = stmt.executeQuery();
 
 			String prov = null;

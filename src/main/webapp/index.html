@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Roboto:900,400' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="http://openlayers.org/en/v3.0.0/css/ol.css"
 	type="text/css" />
 <link rel="stylesheet" href="css/main.css" type="text/css" />
@@ -23,8 +25,12 @@
 
 	<div id="info">
 
+		<h1>Real-Time Hydrometric Data</h1>
+		<div><a href="https://wateroffice.ec.gc.ca/search/searchRealTime_e.html" title="Water Office" target="_blank">Provided by Environment Canada</a></div>
+		
+		<hr />
+		
 		<h2 class="station_name">[Loading]</h2>
-
 		<table>
 			<tr>
 				<td>Station ID</td>
@@ -45,22 +51,31 @@
 		</table>
 
 		<div id="graph">
-			<canvas id="canvas" height="240" width="auto"></canvas>
+			<div id="canvas-wrapper">
+				<canvas id="canvas" height="240" width="340"></canvas>
+			</div>
+			<span>Note: Times given in UTC time.</span>
 		</div>
 
-		<h3>Search for Stations</h3>
+		<hr />
+				
+		<h2>Search for Stations</h2>
 		<form id="search" onsubmit="searchStations(event);">
-			<input name="search" placeholder="Enter search terms" />
+			<input name="search" type="text" placeholder="Enter search terms" />
 			<button>Search</button>
 		</form>
 
 		<div id="search-results"></div>
 
+		<form>		
+			<label>Show only search results <input type="checkbox" id="search-only" checked="checked" disabled="disabled" /></label>
+		</form>
+		
 	</div>
 
 	<div id="map" class="map"></div>
 
-	<div class="station-marker">
+	<div id="station-marker" class="station-marker">
 		<div class="station-name"></div>
 	</div>
 

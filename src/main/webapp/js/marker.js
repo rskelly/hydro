@@ -4,6 +4,8 @@
 	var anim = pkg('ca.dijital.anim');
 	var hydro = pkg('ca.dijital.hydro');
 	
+	var _markerId = 0;
+	
 	/**
 	 * StationMarker is... a marker that represents a station.
 	 * Pass in the station object and a reference to the OL3 map.
@@ -16,7 +18,7 @@
 	/**
 	 * The selector for the station marker element.
 	 */
-	StationMarker.elementSelector = '.station-marker';
+	StationMarker.elementSelector = '#station-marker';
 	
 	/**
 	 * The selector for the station name element.
@@ -44,6 +46,7 @@
 				this._map = map;
 				this._station = station;
 				var el = document.querySelector(StationMarker.elementSelector).cloneNode(true);
+				el.id = 'station-marker-' + ++_markerId;
 				el.addEventListener('mouseover', this.show.bind(this));
 				//el.addEventListener('mouseout', this.hide.bind(this));
 				el.addEventListener('click', this.click.bind(this));
@@ -137,8 +140,7 @@
 				if(StationMarker.selected && StationMarker.selected != this)
 					StationMarker.selected.hide();
 				StationMarker.selected = this;
-				this._map.removeOverlay(this.marker);
-				this._map.addOverlay(this.marker);
+				this.toTop();
 				this._anim.stop();
 				this._txtAnim.stop();
 				this._anim.start(['style.width', 'style.height'], [this._txt.offsetWidth, this._txt.offsetHeight], ['{}px', '{}px'], [10, 10]);

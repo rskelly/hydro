@@ -2,7 +2,9 @@ package ca.dijital.hydro;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class Reading {
 
@@ -12,6 +14,7 @@ public class Reading {
 	private double level;
 	private double discharge;
 	private String province;
+	private static Calendar cal = Calendar.getInstance();
 	
 	public static Reading fromResultSet(ResultSet rslt) throws SQLException {
 		Reading r = new Reading();
@@ -20,7 +23,11 @@ public class Reading {
 		r.setId(rslt.getString("id"));
 		r.setLevel(rslt.getDouble("level"));
 		r.setProvince(rslt.getString("prov"));
-		r.setReadTime(rslt.getTimestamp("readtime"));
+		// Make sure that the date that comes out of the DB 
+		// isn't polluted with some local timezone trickery.
+		cal.setTime(rslt.getTimestamp("readtime"));
+		cal.setTimeZone(TimeZone.getTimeZone("UTC"));
+		r.setReadTime(cal.getTime());
 		return r;
 	}
 	

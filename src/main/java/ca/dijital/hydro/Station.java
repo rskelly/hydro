@@ -2,7 +2,9 @@ package ca.dijital.hydro;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 import org.postgis.PGgeometry;
 import org.postgis.Point;
@@ -16,6 +18,7 @@ public class Station {
 	private double lat;
 	private double lon;
 	private Date lastUpdate;
+	private static Calendar cal = Calendar.getInstance();
 	
 	public static Station fromResultSet(ResultSet rslt) throws SQLException {
 		Station s = new Station();
@@ -26,7 +29,12 @@ public class Station {
 		s.setLon(pt.x);
 		s.setName(rslt.getString("name"));
 		s.setProv(rslt.getString("prov"));
-		s.setLastUpdate(rslt.getTimestamp("lastupdate"));
+		Date dt = rslt.getTimestamp("lastupdate");
+		if(dt != null) {
+			cal.setTime(dt);
+			cal.setTimeZone(TimeZone.getTimeZone("UTC"));
+			s.setLastUpdate(cal.getTime());
+		}
 		return s;
 	}
 	

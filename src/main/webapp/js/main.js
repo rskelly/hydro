@@ -17,7 +17,9 @@
 	var markers = {};
 	// Station markers which are results of a search.
 	var searchResults = {};
-
+	// Markers currently on the map.
+	var markersOnMap = {};
+	
 	// ol3 map and view.
 	var view = null;
 	var map = null;
@@ -63,6 +65,22 @@
 	}
 
 	/**
+	 * Creates a new StationMarker if there isn't one in the
+	 * registry with the same ID. Otherwise updates the existing one. 
+	 */
+	function initializeStationMarker(data) {
+		var sm;
+		if (markers.hasOwnProperty(data.id)) {
+			sm = markers[data.id]
+			sm.update(data);
+		} else {
+			sm = markers[data.id] = new hydro.StationMarker(data, map);
+			sm.on('click', markerClick);
+		}
+		return sm;
+	}
+	
+	/**
 	 * Invoked by the search form. Retrieves the serch results and displays
 	 * them.
 	 */
@@ -74,15 +92,8 @@
 			util.clear(list);
 			searchResults = {};
 			result.forEach(function(station) {
-				var sm;
-				if (markers.hasOwnProperty(station.id)) {
-					sm = markers[station.id]
-					sm.update(station);
-				} else {
-					sm = markers[station.id] = new hydro.StationMarker(station, map);
-					sm.on('click', markerClick);
-					map.addOverlay(sm.marker);
-				}
+				var sm = initializeStationMarker(station);
+				searchResults[sm.id] = sm;
 				var el = document.createElement('a');
 				el.textContent = sm.name;
 				el.classList.add('search-result');
@@ -90,14 +101,67 @@
 				el.setAttribute('href', 'javascript:void(0);');
 				el.addEventListener('click', searchResultClicked);
 				list.appendChild(el);
-				searchResults[sm.id] = sm;
 			});
 			list.scrollTop = 0;
-			hydro.StationMarker.selectedToTop();
+			var combo = document.querySelector('#search-only');
+			if(result.length > 0) {
+				combo.removeAttribute('disabled');
+				combo.addEventListener('change', searchOnlyToggle);
+			} else {
+				combo.setAttribute('disabled', 'disabled');
+			}
+			
+			updateMarkers();
 		});
 		return false;
 	};
 
+	/**
+	 * Responds to the search-only toggle.
+	 */
+	function searchOnlyToggle() {
+		if(!isSearchOnly()) {
+			loadStations();
+		} else {
+			updateMarkers();
+		}
+	}
+
+	/**
+	 * Returns true if the search-only box is active and checked.
+	 */
+	function isSearchOnly() {
+		var chk = document.querySelector('#search-only');
+		return !chk.disabled && chk.checked;
+	}
+	
+	/**
+	 * Update the markers on the map.
+	 */
+	function updateMarkers() {
+		var searchOnly = isSearchOnly();
+		// Remove all markers.
+		for(var i in markersOnMap) {
+			map.removeOverlay(markersOnMap[i].marker);
+			delete markersOnMap[i];
+		}
+		// Add needed markers.
+		for(var i in markers) {
+			if(!searchOnly || (searchOnly && searchResults.hasOwnProperty(i))) {
+				map.addOverlay(markers[i].marker);
+				markersOnMap[i] = markers[i];
+			}
+		}
+		// Center if necessary.
+		if(centerOnLoad) {
+			centerOnLoad = false;
+			view.setCenter(ol.proj.transform(hydro.StationMarker.selected.pos, 'EPSG:4326',
+				'EPSG:3857'));
+		}
+		// Move selected to top.
+		hydro.StationMarker.selectedToTop();
+	}
+	
 	/**
 	 * Shows a station by optionally expanding the marker, populating the info
 	 * table and loading readings for the graph.
@@ -121,44 +185,22 @@
 		var url = READINGS_URL.replace('{id}', id ? id : 'random').replace(
 				'{n}', 20)
 		net.get(url, null, function(result) {
-			var sm;
-			if(markers[result.station.id]) {
-				sm = markers[result.station.id];
-				sm.update(result.station);
-			} else {
-				sm = markers[result.station.id] = new hydro.StationMarker(result.station, map);
-				sm.on('click', markerClick);
-				map.addOverlay(sm.marker);
-			}
-			if(!id)
-				net.control.set(sm.id);
+			// Set the timestamp property on each result.
 			for (var i = 0; i < result.readings.length; ++i) {
 				result.readings[i].timestamp = Date
 						.parse(result.readings[i].readTime);
 			}
-			if(center || centerOnLoad) {
-				centerOnLoad = false;
-				var pos = centerOnStation(sm);
-				view.setCenter(ol.proj.transform(pos, 'EPSG:4326',
-					'EPSG:3857'));
-			}
+			// Add or update the marker to the registry.
+			var sm = initializeStationMarker(result.station);
+			if(!id)
+				net.control.set(sm.id);
+			if(center)
+				centerOnLoad = true;
 			showStation(sm, result.readings);
+			updateMarkers();
 		});
 	}
 
-	/**
-	 * Get the appropriate map center position for a given station.
-	 */
-	function centerOnStation(station) {
-		var size = map.getSize();
-		var extent = ol.proj.transformExtent(
-				view.calculateExtent([
-						document.querySelector('#info').clientWidth,
-						size[1] ]), 'EPSG:3857', 'EPSG:4326');
-		return [ station.pos[0] + (extent[2] - extent[0]) / 2.0,
-		            station.pos[1] ];
-	}
-	
 	/**
 	 * Called when the map's view changes. Loads the set of visible stations and
 	 * adds any that are not present. Removes stations that are out of view. If
@@ -168,46 +210,37 @@
 	function viewChange() {
 		extent = ol.proj.transformExtent(view.calculateExtent(map.getSize()),
 				'EPSG:3857', 'EPSG:4326');
-		net.post(STATIONS_URL, {
-				xmin : extent[0],
-				ymin : extent[1],
-				xmax : extent[2],
-				ymax : extent[3]
-			},
+		if(!isSearchOnly())
+			loadStations();
+	}
+	
+	/**
+	 * Load the stations for the current extent.
+	 * Load the linked or random station if this is the first load.
+	 */
+	function loadStations() {
+		net.post(STATIONS_URL, { xmin : extent[0], ymin : extent[1], xmax : extent[2], ymax : extent[3] },
 			function(result) {
 				var tmp = {};
-				var lst = [];
 				result.forEach(function(station) {
-					var sm = new hydro.StationMarker(station, map);
-					lst.push(sm);
-					sm.on('click', markerClick);
+					var sm = initializeStationMarker(station);
 					tmp[sm.id] = sm;
 				});
-				for ( var k in markers) {
-					// Do not remove the search results, if there are any, 
-					if (!tmp.hasOwnProperty(k)
-							&& !searchResults.hasOwnProperty(k)) {
-						map.removeOverlay(markers[k].marker);
-						delete markers[k];
+				for(var i in searchResults) {
+					if(!tmp.hasOwnProperty(i)) {
+						tmp[i] = searchResults[i];
 					}
 				}
-				for ( var k in tmp) {
-					if (!markers.hasOwnProperty(k)) {
-						map.addOverlay(tmp[k].marker);
-						markers[k] = tmp[k];
-					}
-				}
+				markers = tmp;
+				updateMarkers();
 				if(firstLoad) {
 					// Try to load either the station represented by an ID, 
 					// or a random one if there is no id.
 					firstLoad = false;
 					loadStation(net.control.get(), true);
-				} else {
-					hydro.StationMarker.selectedToTop();
 				}
 
 			});
-		
 	}
 
 	/**
