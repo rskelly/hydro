@@ -280,7 +280,9 @@
 
 		graph = new hydro.Graph(document.querySelector('#canvas'));
 
-		spinAnim = new anim.Anim(document.querySelector('#spinner'));
+		clock = new Clock(document.querySelector('.clock'), 2, '#fff');
+		clock.start();
+		spinAnim = new anim.Anim(document.querySelector('.clock'));
 		spinAnim.duration = 250;
 
 		map.on('moveend', viewChange);

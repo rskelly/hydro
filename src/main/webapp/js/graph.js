@@ -104,7 +104,7 @@
 				y = evt.clientY + 10;
 				if(x + tt.offsetWidth >= document.body.clientWidth)
 					x -= (tt.offsetWidth + 20);
-				console.log(x + tt.offsetWidth + ', ' + document.body.clientWidth);
+				//console.log(x + tt.offsetWidth + ', ' + document.body.clientWidth);
 				tt.style.left = x + 'px';
 				tt.style.top = y + 'px';
 				if(!this._ttShow) {
@@ -162,7 +162,7 @@
 				for(var i = 0, j = 0; i <= params.arangey; i += params.arangey / 10, ++j ) {
 					ctx.moveTo(left, height - bottom - i * (height - top - bottom) / params.arangey);
 					ctx.lineTo(left - 5, height - bottom - i * (height - top - bottom) / params.arangey);
-					ctx.fillText((params.aminy + j * params.arangey / 10.0).toFixed(2) + 'm', 0, height - bottom - i * (height - top - bottom) / params.arangey + 2);
+					ctx.fillText((params.aminy + j * params.arangey / 10.0).toFixed(3) + 'm', 0, height - bottom - i * (height - top - bottom) / params.arangey + 2);
 				}
 				// Draw x axis ticks and labels.
 				for(var i = 0, j = 0;i <= params.arangex; i += params.arangex / 5, ++j) {
