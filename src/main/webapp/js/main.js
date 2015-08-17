@@ -27,7 +27,7 @@
 	// Graph component.
 	var graph = null;
 	
-	// Network indicator studd.
+	// Network indicator stuff.
 	var spinAnim = null;
 	var spinOn = false;
 	
