@@ -8,7 +8,7 @@
 	var loc = document.location;
 	var BASE_URL = loc.protocol == 'file:' 
 		? 'http://localhost:8080/hydro'
-		: 'http://' + loc.host + '/' + loc.pathname.split('/')[1];
+		: 'http://' + loc.host + '/maps/hydro';
 	var REST_URL = BASE_URL + '/rest';
 	var STATIONS_URL = REST_URL + '/stations';
 	var READINGS_URL = REST_URL + '/readings/{id}/{n}';
