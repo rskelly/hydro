@@ -4,6 +4,6 @@ This is a small map-based site for browsing real-time hydrometry from Environmen
 
 Browse stations using the map or search for a station using the search box. Water levels are shown hourly for the last few days.
 
-A live version can be found here: http://robskelly.com/hydro/
+A live version can be found here: http://robskelly.com/maps/hydro/
 
 * Note: this application depends on a small REST framework that is not currently public. 
