@@ -198,6 +198,8 @@
 				centerOnLoad = true;
 			showStation(sm, result.readings);
 			updateMarkers();
+		}, function(error) {
+			console.log(error);
 		});
 	}
 

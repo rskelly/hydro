@@ -93,7 +93,7 @@ public class Service {
 	 * @return
 	 * @throws Exception
 	 */
-	@RestMethod(value = "/readings/{id}/{n}")
+	@RestMethod(path = "/readings/{id}/{n}")
 	public Object getReadings(RestMethodContext ctx) throws Exception {
 		Map<String, String> params = ctx.getPathParameters();
 		String id = params.get("id");
@@ -117,7 +117,7 @@ public class Service {
 	 * @return
 	 * @throws Exception
 	 */
-	@RestMethod(value = "/stations/[id]", methods = { HttpMethod.GET, HttpMethod.POST })
+	@RestMethod(path = "/stations/[id]", methods = { HttpMethod.GET, HttpMethod.POST })
 	public List<Station> getStations(RestMethodContext ctx) throws Exception {
 		Map<String, String> params = ctx.getPathParameters();
 		String id = params.get("id");
