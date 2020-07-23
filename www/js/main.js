@@ -7,9 +7,9 @@
 
 	var loc = document.location;
 	var BASE_URL = loc.protocol == 'file:' 
-		? 'http://localhost:8080/hydro'
+		? 'http://localhost:3000/hydro'
 		: 'http://' + loc.host + '/maps/hydro';
-	var REST_URL = BASE_URL + '/rest';
+	var REST_URL = BASE_URL + '';
 	var STATIONS_URL = REST_URL + '/stations';
 	var READINGS_URL = REST_URL + '/readings/{id}/{n}';
 
@@ -183,12 +183,12 @@
 	 */
 	function loadStation(id, center) {
 		var url = READINGS_URL.replace('{id}', id ? id : 'random').replace(
-				'{n}', 20)
+				'{n}', 100)
 		net.get(url, null, function(result) {
 			// Set the timestamp property on each result.
 			for (var i = 0; i < result.readings.length; ++i) {
 				result.readings[i].timestamp = Date
-						.parse(result.readings[i].readTime);
+						.parse(result.readings[i].readtime);
 			}
 			// Add or update the marker to the registry.
 			var sm = initializeStationMarker(result.station);
@@ -272,11 +272,13 @@
 
 		map = new ol.Map({
 			target : 'map',
-			layers : [ new ol.layer.Tile({
-				source : new ol.source.MapQuest({
-					layer : 'sat'
-				})
-			}) ],
+			layers : [ 
+				new ol.layer.Tile({
+      				source: new ol.source.XYZ({
+        				url: 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoicnNrZWxseSIsImEiOiJjaWkzeHBqbWgwMTV2dHJtMGpoandtbXZ1In0.NfvC9sMFzimyq1zeq-rHkA'
+      				})
+    			})
+    		],
 			view : view
 		});
 

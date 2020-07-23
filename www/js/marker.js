@@ -113,7 +113,7 @@
 		 * Get the province of the station.
 		 */
 		lastUpdate : {
-			get : function() { return this._station.lastUpdate; }
+			get : function() { return this._station.lastupdate; }
 		},
 		
 		/**
