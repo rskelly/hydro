@@ -1,43 +1,43 @@
 (function() {
 
-	var util = pkg('ca.dijital.util');
-	var net = pkg('ca.dijital.net');
-	var anim = pkg('ca.dijital.anim');
-	var hydro = pkg('ca.dijital.hydro');
+	const util = pkg('ca.dijital.util');
+	const net = pkg('ca.dijital.net');
+	const anim = pkg('ca.dijital.anim');
+	const hydro = pkg('ca.dijital.hydro');
 
-	var loc = document.location;
-	var BASE_URL = loc.protocol == 'file:' 
+	const loc = document.location;
+	const BASE_URL = loc.protocol == 'file:' 
 		? 'http://localhost:3000/hydro'
 		: 'http://' + loc.host + '/maps/hydro';
-	var REST_URL = BASE_URL + '';
-	var STATIONS_URL = REST_URL + '/stations';
-	var READINGS_URL = REST_URL + '/readings/{id}/{n}';
+	const REST_URL = BASE_URL + '';
+	const STATIONS_URL = REST_URL + '/stations';
+	const READINGS_URL = REST_URL + '/readings/{id}/{n}';
 
 	// Station marker instances, indexed by ID.
-	var markers = {};
+	let markers = new Map();
 	// Station markers which are results of a search.
-	var searchResults = {};
+	let searchResults = new Map();
 	// Markers currently on the map.
-	var markersOnMap = {};
+	let markersOnMap = new Map();
 	
 	// ol3 map and view.
-	var view = null;
-	var map = null;
+	let view = null;
+	let map = null;
 	
 	// Graph component.
-	var graph = null;
+	let graph = null;
 	
 	// Network indicator stuff.
-	var spinAnim = null;
-	var spinOn = false;
+	let spinAnim = null;
+	let spinOn = false;
 	
 	// True for the page load. When the map initializes, 
 	// loads a random station.
-	var firstLoad = true;
+	let firstLoad = true;
 	
 	// Set to true to trigger recentering on a marker.
 	// Reset to false every time.
-	var centerOnLoad = false;
+	let centerOnLoad = false;
 	
 	/**
 	 * Called when a search result item is clicked. Selects and shows a
@@ -69,12 +69,12 @@
 	 * registry with the same ID. Otherwise updates the existing one. 
 	 */
 	function initializeStationMarker(data) {
-		var sm;
-		if (markers.hasOwnProperty(data.id)) {
-			sm = markers[data.id]
+		let sm;
+		if (markers.has(data.id)) {
+			sm = markers.get(data.id);
 			sm.update(data);
 		} else {
-			sm = markers[data.id] = new hydro.StationMarker(data, map);
+			markers.set(data.id, (sm = new hydro.StationMarker(data, map)));
 			sm.on('click', markerClick);
 		}
 		return sm;
@@ -86,15 +86,15 @@
 	 */
 	window.searchStations = function(evt) {
 		evt.preventDefault();
-		var data = new FormData(evt.target);
-		net.post(STATIONS_URL, data, function(result) {
-			var list = document.querySelector('#search-results');
+		let data = new FormData(evt.target);
+		searchResults.clear();
+		net.post(STATIONS_URL, data, result => {
+			let list = document.querySelector('#search-results');
 			util.clear(list);
-			searchResults = {};
 			result.forEach(function(station) {
-				var sm = initializeStationMarker(station);
-				searchResults[sm.id] = sm;
-				var el = document.createElement('a');
+				let sm = initializeStationMarker(station);
+				searchResults.set(sm.id, sm);
+				let el = document.createElement('a');
 				el.textContent = sm.name;
 				el.classList.add('search-result');
 				el.setAttribute('data-id', sm.id);
@@ -103,14 +103,13 @@
 				list.appendChild(el);
 			});
 			list.scrollTop = 0;
-			var combo = document.querySelector('#search-only');
+			let combo = document.querySelector('#search-only');
 			if(result.length > 0) {
 				combo.removeAttribute('disabled');
 				combo.addEventListener('change', searchOnlyToggle);
 			} else {
 				combo.setAttribute('disabled', 'disabled');
 			}
-			
 			updateMarkers();
 		});
 		return false;
@@ -131,7 +130,7 @@
 	 * Returns true if the search-only box is active and checked.
 	 */
 	function isSearchOnly() {
-		var chk = document.querySelector('#search-only');
+		let chk = document.querySelector('#search-only');
 		return !chk.disabled && chk.checked;
 	}
 	
@@ -139,17 +138,17 @@
 	 * Update the markers on the map.
 	 */
 	function updateMarkers() {
-		var searchOnly = isSearchOnly();
+		let searchOnly = isSearchOnly();
 		// Remove all markers.
-		for(var i in markersOnMap) {
-			map.removeOverlay(markersOnMap[i].marker);
-			delete markersOnMap[i];
+		for(let [k, v] of markersOnMap.entries()) {
+			map.removeOverlay(v.marker);
+			markersOnMap.delete(k);
 		}
 		// Add needed markers.
-		for(var i in markers) {
-			if(!searchOnly || (searchOnly && searchResults.hasOwnProperty(i))) {
-				map.addOverlay(markers[i].marker);
-				markersOnMap[i] = markers[i];
+		for(let [k, v] of markers.entries()) {
+			if(!searchOnly || (searchOnly && searchResults.has(k))) {
+				map.addOverlay(v.marker);
+				markersOnMap.set(k, v);
 			}
 		}
 		// Center if necessary.
@@ -167,7 +166,7 @@
 	 * table and loading readings for the graph.
 	 */
 	function showStation(station, readings) {
-		graph.render(readings, 'timestamp', 'level');
+		graph.render(readings, 'timestamp', 'level', 'timestamp', 'discharge');
 		document.querySelector('.station_name').textContent = station.name;
 		document.querySelector('.station_id').textContent = station.id;
 		document.querySelector('.station_prov').textContent = station.prov;
@@ -182,16 +181,16 @@
 	 * Optionally recenters the map on the station.
 	 */
 	function loadStation(id, center) {
-		var url = READINGS_URL.replace('{id}', id ? id : 'random').replace(
-				'{n}', 100)
+		let url = READINGS_URL.replace('{id}', id ? id : 'random').replace(
+				'{n}', 50)
 		net.get(url, null, function(result) {
 			// Set the timestamp property on each result.
-			for (var i = 0; i < result.readings.length; ++i) {
+			for (let i = 0; i < result.readings.length; ++i) {
 				result.readings[i].timestamp = Date
 						.parse(result.readings[i].readtime);
 			}
 			// Add or update the marker to the registry.
-			var sm = initializeStationMarker(result.station);
+			let sm = initializeStationMarker(result.station);
 			if(!id)
 				net.control.set(sm.id);
 			if(center)
@@ -223,14 +222,14 @@
 	function loadStations() {
 		net.post(STATIONS_URL, { xmin : extent[0], ymin : extent[1], xmax : extent[2], ymax : extent[3] },
 			function(result) {
-				var tmp = {};
+				let tmp = new Map();
 				result.forEach(function(station) {
-					var sm = initializeStationMarker(station);
-					tmp[sm.id] = sm;
+					let sm = initializeStationMarker(station);
+					tmp.set(sm.id, sm);
 				});
-				for(var i in searchResults) {
-					if(!tmp.hasOwnProperty(i)) {
-						tmp[i] = searchResults[i];
+				for(let [k, v] of searchResults.entries()) {
+					if(!tmp.has(k)) {
+						tmp.set(k, v);
 					}
 				}
 				markers = tmp;
@@ -267,7 +266,7 @@
 		view = new ol.View({
 			center : ol.proj.transform([ -90, 55 ], 'EPSG:4326',
 					'EPSG:3857'),
-			zoom : 4
+			zoom : 10
 		});
 
 		map = new ol.Map({
@@ -282,11 +281,11 @@
 			view : view
 		});
 
-		graph = new hydro.Graph(document.querySelector('#canvas'));
+		graph = new hydro.Graph(document.querySelector('#canvas'), document.querySelector('#graph'));
 
-		clock = new Clock(document.querySelector('.clock'), 2, '#fff');
+		clock = new Clock(document.querySelector('#clock'), 2, '#fff');
 		clock.start();
-		spinAnim = new anim.Anim(document.querySelector('.clock'));
+		spinAnim = new anim.Anim(document.querySelector('#clock'));
 		spinAnim.duration = 250;
 
 		map.on('moveend', viewChange);

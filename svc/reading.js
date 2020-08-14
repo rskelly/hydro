@@ -1,12 +1,12 @@
 class Reading {
 
 	constructor(params = null) {
-		this.rid = 0;
-		this.id = null;
+		//this.rid = 0;
+		//this.id = null;
 		this.readtime = null;
 		this.level = Number.NaN;
 		this.discharge = Number.NaN;
-		this.prov = null;
+		//this.prov = null;
 		if(params) {
 			for(let [k, v] of Object.entries(params))
 				this[k] = v;

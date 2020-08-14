@@ -9,6 +9,10 @@ class Station {
 		this.lat = Number.NaN;
 		this.lon = Number.NaN;
 		this.lastupdate = null;
+		this.minlevel = Number.NaN;
+		this.maxlevel = Number.NaN;
+		this.mindischarge = Number.NaN;
+		this.maxdischarge = Number.NaN;
 		if(params) {
 			for(let [k, v] of Object.entries(params))
 				this[k] = v;
@@ -59,7 +63,6 @@ class Station {
 	setLastUpdate(lastupdate) {
 		this.lastupdate = lastupdate;
 	}
-	
 }
 
 module.exports = Station;

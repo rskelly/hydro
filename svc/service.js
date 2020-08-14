@@ -7,41 +7,36 @@ const multer = require('multer');
 const Station = require('./station.js');
 const Reading = require('./reading.js');
 
-/**
- * Provides methods for accessing data. Provides REST-enabled methods for
- * interacting with client applications.
- * 
- * @author rob
- */
-class Service {
 
 	/**
 	 * Returns a list of the latest readings for a station, grouped by hour,
 	 * with the latest result for each hour.
 	 */
-	static SQL_LATEST_READINGS = "select distinct on (date_trunc('hour', readtime)) readings.*, stations.prov " 
-		+ "from stations inner join readings using(id) "
-		+ "where id=$1 "
-		+ "order by date_trunc('hour', readtime) desc, readtime desc "
-		+ "limit $2";
+const SQL_LATEST_READINGS = "select * from ("
+			+ "select distinct on (date_trunc('hour', readtime)) readings.readtime, readings.level, readings.discharge " 
+			+ "from stations inner join readings using(id) "
+			+ "where id=$1 "
+			+ "order by date_trunc('hour', readtime) desc, readtime desc "
+			+ "limit $2"
+		+ ") t order by readtime";
 
 	/**
 	 * Gets the age of the last reading for a station in hours.
 	 */
-	static SQL_GET_READING_AGE = "select timezone, prov, lastupdate is not null as hasage, extract(epoch from current_timestamp - lastupdate)/3600.0 as age "
-	+ "from stations "
-	+ "where id=$1";
+const SQL_GET_READING_AGE = "select timezone, prov, lastupdate is not null as hasage, extract(epoch from current_timestamp - lastupdate)/3600.0 as age "
+		+ "from stations "
+		+ "where id=$1";
 
 	/**
 	 * Insert a reading.
 	 */
-	static SQL_INSERT_READING = "insert into readings (id, readtime, level, discharge) values ($1, to_timestamp($2), $3, $4)"; // on
+const SQL_INSERT_READING = "insert into readings (id, readtime, level, discharge) values ($1, to_timestamp($2), $3, $4)"; // on
 
-	static SQL_INSERT_STATION = "insert into stations (id, name, prov, timezone, geom) values ($1, $2, $3, $4, st_geomfromtext($5, 4326))";
+const SQL_INSERT_STATION = "insert into stations (id, name, prov, timezone, geom) values ($1, $2, $3, $4, st_geomfromtext($5, 4326))";
 	/**
 	 * Query the stations list given a polygon.
 	 */
-	static SQL_STATIONS_GEOM = "select *, st_x(geom) as lon, st_y(geom) as lat "
+const SQL_STATIONS_GEOM = "select *, st_x(geom) as lon, st_y(geom) as lat "
 		+ "from stations "
 		+ "where st_contains(st_geomfromtext($1, 4326), geom) ";
 		//+ "order by random() "
@@ -50,38 +45,42 @@ class Service {
 	/**
 	 * Set the last update time for a station.
 	 */
-	static SQL_SET_UPTIME = "update stations set lastupdate=current_timestamp where id=$1";
+const SQL_SET_UPTIME = "update stations set lastupdate=current_timestamp where id=$1";
 
 	/**
 	 * Get the last update time for a station.
 	 */
-	static SQL_GET_UPTIME = "select lastupdate is not null as hasupdate, extract(epoch from current_timestamp-lastupdate)/3600.0 as age "
+const SQL_GET_UPTIME = "select lastupdate is not null as hasupdate, extract(epoch from current_timestamp-lastupdate)/3600.0 as age "
 	+ "from stations where id=$1";
 
 	/**
 	 * Query a station by ID.
 	 */
-	static SQL_STATION = "select *, st_x(geom) as lon, st_y(geom) as lat from stations where id=$1";
+const SQL_STATION = "select s.*, st_x(s.geom) as lon, st_y(s.geom) as lat "
+		//+ "min(r.level) as minlevel, max(r.level) as maxlevel, "
+		//+ "min(r.discharge) as mindischarge, max(r.discharge) as maxdischarge "
+	+ "from stations s "//" inner join readings r using(id) "
+	+ "where s.id=$1";
 
 	/**
 	 * Returns the ID of a random station.
 	 */
-	static SQL_RANDOM_STATION = "select *, st_x(geom) as lon, st_y(geom) as lat from stations order by random() limit 1";
+const SQL_RANDOM_STATION = "select *, st_x(geom) as lon, st_y(geom) as lat from stations order by random() limit 1";
 
 	/**
 	 * Perform a trigram search against the station names.
 	 */
-	static SQL_SEARCH = "select *, similarity(name, $1) as s, st_x(geom) as lon, st_y(geom) as lat from stations order by s desc limit 100";
+const SQL_SEARCH = "select *, similarity(name, $1) as s, st_x(geom) as lon, st_y(geom) as lat from stations order by s desc limit 100";
 
 	/**
 	 * Delete readings for a station.
 	 */
-	static SQL_DELETE_READINGS = "delete from readings where id=$1";
+const SQL_DELETE_READINGS = "delete from readings where id=$1";
 
 	/**
 	 * DDL Statements.
 	 */
-	static SQL_CREATE_DB = [
+const SQL_CREATE_DB = [
 		"create table if not exists readings (rid serial primary key, id text, readtime timestamp, level float, discharge float)",
 		"create table if not exists stations (sid serial primary key, id text, name text, prov text, timezone float, lastupdate timestamp, geom geometry('point', 4326))",
 		"create index if not exists readings_id_idx on readings(id)",
@@ -94,14 +93,24 @@ class Service {
 	/**
 	 * Data file URL template.
 	 */
-	static URL_TPL = 'https://dd.weather.gc.ca/hydrometric/csv/{prov}/hourly/{prov}_{id}_hourly_hydrometric.csv';
+const URL_TPL = 'https://dd.weather.gc.ca/hydrometric/csv/{prov}/hourly/{prov}_{id}_hourly_hydrometric.csv';
 
-	static URL_STATIONS = "https://dd.weather.gc.ca/hydrometric/doc/hydrometric_StationList.csv";
+const URL_STATIONS = "https://dd.weather.gc.ca/hydrometric/doc/hydrometric_StationList.csv";
+
+
+/**
+ * Provides methods for accessing data. Provides REST-enabled methods for
+ * interacting with client applications.
+ * 
+ * @author rob
+ */
+class Service {
 
 	constructor(conn) {
 		this.conn = conn;
 	}
 
+	// Get the data at the URL by GET.
 	httpsGet(url) {
 		return new Promise((resolve, reject) => {
 			let data = '';
@@ -157,14 +166,14 @@ class Service {
 			// Create the database if needed.
 			await client.query('BEGIN');
 
-			Service.SQL_CREATE_DB.forEach(async(ddl) => { 
+			SQL_CREATE_DB.forEach(async(ddl) => { 
 				await client.query(ddl);
 			});
 				
 			await client.query('COMMIT');
 
 			// Acquire the station list.
-			let data = await this.httpsGet(Service.URL_STATIONS);
+			let data = await this.httpsGet(URL_STATIONS);
 
 			// Split up the lines.
 			data = data.split('\n').slice(1); // skip header.
@@ -190,7 +199,7 @@ class Service {
 
 				// Create and insert the stations.
 				try {
-					await client.query(Service.SQL_INSERT_STATION, [id, name, prov, tz, geom]);
+					await client.query(SQL_INSERT_STATION, [id, name, prov, tz, geom]);
 				} catch(err) {
 					console.log(err);
 				}
@@ -237,7 +246,7 @@ class Service {
 		 */
 		app.get(prefix + "/readings/:id/:n?", (req, res) => {
 			let id = req.params.id;
-			let n = getN(req.query);
+			let n = getN(req.params);
 			this.getReadings(id, n).then(result => {
 				res.send({result: result});
 			}).catch(err => {
@@ -333,7 +342,7 @@ class Service {
 		let client = _client || await this.conn.connect();
 		try {
 			let ret = Number.MAX_VALUE;
-			let res = await client.query(Service.SQL_GET_UPTIME, [id]);
+			let res = await client.query(SQL_GET_UPTIME, [id]);
 			if(res.rows.length > 0)
 				ret = res.rows[0].hasUpdate ? res.rows[0].age : Number.MAX_VALUE;
 			return ret;
@@ -354,7 +363,7 @@ class Service {
 	async setLastUpdate(id, _client = null) {
 		let client = _client || await this.conn.connect();
 		try {		
-			await client.query(Service.SQL_SET_UPTIME, [id]);
+			await client.query(SQL_SET_UPTIME, [id]);
 		} catch(err) {
 			console.log(err);
 		} finally {
@@ -382,10 +391,10 @@ class Service {
 			await client.query('BEGIN');
 
 			// Delete existing readings to preserve space.
-			await client.query(Service.SQL_DELETE_READINGS, [id]);
+			///await client.query(SQL_DELETE_READINGS, [id]);
 
 			// Download the file.
-			let url = Service.URL_TPL.replace(/{prov}/g, prov).replace(/{id}/g, id);
+			let url = URL_TPL.replace(/{prov}/g, prov).replace(/{id}/g, id);
 			let data = await this.httpsGet(url);
 				
 			data = data.split('\r\n').slice(1); // skip header.
@@ -414,8 +423,8 @@ class Service {
 					console.log(err);
 				}
 				
-				await client.query(Service.SQL_INSERT_READING, [id, readtime, level, discharge]);
-				await client.query(Service.SQL_SET_UPTIME, [id]);
+				await client.query(SQL_INSERT_READING, [id, readtime, level, discharge]);
+				await client.query(SQL_SET_UPTIME, [id]);
 			}
 
 			await client.query('COMMIT');
@@ -440,7 +449,7 @@ class Service {
 		let client = _client || await this.conn.connect();
 		try {
 			// Check to see if it needs an update.
-			let res = await client.query(Service.SQL_GET_READING_AGE, [id]);
+			let res = await client.query(SQL_GET_READING_AGE, [id]);
 			let prov = null;
 			let age = Number.MAX_VALUE;
 			let hasAge = false;
@@ -475,7 +484,7 @@ class Service {
 			// Try to update the readings.
 			await this.update(id, client)
 			let result = {station: null, readings: []};
-			let res = await client.query(Service.SQL_LATEST_READINGS, [id, n]);
+			let res = await client.query(SQL_LATEST_READINGS, [id, n]);
 			res.rows.forEach(row => {
 				result.readings.push(new Reading(row));
 			});
@@ -501,7 +510,7 @@ class Service {
 		let client = _client || await this.conn.connect();
 		try {
 			let geom = `POLYGON((${xmin} ${ymin}, ${xmax} ${ymin}, ${xmax} ${ymax}, ${xmin} ${ymax}, ${xmin} ${ymin}))`;
-			let res = await client.query(Service.SQL_STATIONS_GEOM, [geom]);
+			let res = await client.query(SQL_STATIONS_GEOM, [geom]);
 			let stations = [];
 			res.rows.forEach(row => {  
 				stations.push(new Station(row));
@@ -524,7 +533,7 @@ class Service {
 		let client = _client || await this.conn.connect();
 		try {
 			term = term.replace(/[^a-zA-Z0-9]/g, "");
-			const res = await client.query(Service.SQL_SEARCH, [term]);
+			const res = await client.query(SQL_SEARCH, [term]);
 			let stations = [];
 			res.rows.forEach(row => {
 				let s = new Station(row);
@@ -549,9 +558,9 @@ class Service {
 		try {
 			let res;
 			if(id == 'random') {
-				res = await client.query(Service.SQL_RANDOM_STATION);
+				res = await client.query(SQL_RANDOM_STATION);
 			} else {
-				res = await client.query(Service.SQL_STATION, [id]);
+				res = await client.query(SQL_STATION, [id]);
 			}
 			if(res.rows.length > 0)
 				return new Station(res.rows[0]);

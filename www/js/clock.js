@@ -1,12 +1,14 @@
 (function() {
 	
-	function Clock(el, lineWidth, color) {
-		this.el = el;
-		this.lineWidth = lineWidth;
-		this.color = color;
-	}
-	Clock.prototype = {
-		start:function() {
+	class Clock {
+
+		constructor(el, lineWidth, color) {
+			this.el = el;
+			this.lineWidth = lineWidth;
+			this.color = color;
+		}
+
+		start() {
 			this.angle = 0.0;
 			while(this.el.firstChild)
 				this.el.removeChild(this.el.firstChild);
@@ -20,8 +22,9 @@
 			ctx.lineCap = 'round';
 			this.render = this._render.bind(this);
 			requestAnimationFrame(this.render);
-		},
-		_render:function() {
+		}
+
+		_render() {
 			var ctx = this.canv.getContext('2d');
 			var lw = parseFloat(ctx.lineWidth); 
 			var x = lw + 1;
@@ -45,6 +48,7 @@
 			ctx.stroke();
 			requestAnimationFrame(this.render);
 		}
+		
 	}
 
 	window.Clock = Clock;

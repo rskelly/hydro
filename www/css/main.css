@@ -3,6 +3,7 @@ html, body{
 	margin:0;
 	font-family:Roboto, sans;
 	font-size:10pt;
+	overflow: hidden;
 }
 
 h1, h2, h3 {
@@ -43,10 +44,6 @@ canvas {
 	padding:0;
 }
 
-#canvas-wrapper {
-	margin:20px 0;
-}
-
 button {
 	border:1px #3BC43D solid;
 	width:80px;
@@ -80,13 +77,6 @@ input[type="text"] {
 	z-index:10000;
 	opacity:0;
 }
-.map {
-	position:absolute;
-	top:0;
-	left:0;
-	bottom:0;
-	right:400px;
-}
 
 .station-marker {
 	border:1px solid black;
@@ -94,7 +84,9 @@ input[type="text"] {
 	height:10px;
 	width:10px;
 	background-color:#366DBA;
+	display: none;
 }
+
 .station-name {
 	position:absolute;
 	width:auto;
@@ -109,50 +101,72 @@ input[type="text"] {
 	font-size:12px;
 }
 
-#info {
-	position:absolute;
-	right:0;
-	bottom:0;
-	top:0;
-	width:340px;
-	background-color:#366DBA;
-	z-index:1000;
-	padding:30px;
-	overflow-y:auto;
-	color:white;
-	box-shadow: 0 0 10px black;
+#side_panel {
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 340px;
+	padding: 20px;
+	z-index: 1000;
+	background-color: #366DBA;
+	color: white;
+	overflow-y: scroll;
 }
 
-#info table {
-	width:100%;
-	border-spacing:0;
-	padding:0;
-	margin:0;
+#side_panel table {
+	width: 100%;
+	border-spacing: 0;
+	padding: 0;
+	margin: 0;
 }
 
-#info table td {
-	padding:2px 0;
+#side_panel table td {
+	padding: 2px 0;
 }
 
 .cell {
 	font-weight:bold;
 }
 
+#map {
+	position:absolute;
+	top:0;
+	left:0;
+	bottom:0;
+	right:340px;
+	z-index: -1000;
+}
+
 #graph {
-	padding:0;
+	height: 245px;
+	width: 100%;
 }
 
 #graph span {
+	color: white;
 	font-style:italic;
 	text-align:center;
 	font-size:10pt;
 	display:block;
 }
 
-.clock {
+#graph_min, #graph_max {
+	position: absolute;
+	top: 0;
+	width: 40px;
+	height: 40px;
+	border-radius: 20px;
+	background-color:white;
+	border: 1px black solid;
+	margin: 0 0 0 -20px;
+	padding: 0;
+}
+
+#clock {
 	position:absolute;
 	top:10px;
-	left:70px;
+	right:30px;
 	width:35px;
 	height:35px;
 	z-index:2000;
@@ -177,6 +191,7 @@ input[type="text"] {
 	margin-bottom:1px;
 	text-decoration:none;
 	color:black;
+	z-index: 1000;
 }
 .search-result:hover {
 	text-decoration:underline;
