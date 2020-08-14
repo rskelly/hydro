@@ -70,6 +70,25 @@ def download(url, filename):
     except:
         return False
 
+def create_indices(delete = False):
+    '''
+    Delete and create the indices for th time series database.
+    '''
+
+    conn = psycopg2.connect('dbname={db} user={pguser}'.format(db = db, pguser = pguser))
+
+    try:
+        with conn:
+            with conn.cursor() as cur:
+
+                for sql in ddl_create_indexes:
+                    cur.execute(sql)
+
+                cur.execute('commit')
+                cur.execute('vacuum analyze')
+    finally:
+        conn.close()
+
 def create_db(delete = False):
     '''
     Delete and create the tables for th time series database.
@@ -95,7 +114,6 @@ def create_db(delete = False):
                 cur.execute('vacuum analyze')
     finally:
         conn.close()
-
 
 
 def create_geometries(overwrite = False):
@@ -280,3 +298,5 @@ if __name__ == '__main__':
     #create_geometries()
     #update_stations()
     update_readings()
+    create_indices()
+
