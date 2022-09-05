@@ -7,8 +7,8 @@
 
 	const loc = document.location;
 	const BASE_URL = loc.protocol == 'file:' 
-		? 'http://localhost:3000/hydro'
-		: 'http://' + loc.host + '/maps/hydro';
+		? 'https://localhost:3000/hydro'
+		: 'https://' + loc.host + '/maps/hydro';
 	const REST_URL = BASE_URL + '';
 	const STATIONS_URL = REST_URL + '/stations';
 	const READINGS_URL = REST_URL + '/readings/{id}/{n}';
