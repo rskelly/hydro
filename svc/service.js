@@ -564,6 +564,7 @@ class Service {
 			}
 			if(res.rows.length > 0)
 				return new Station(res.rows[0]);
+			return null;
 		} catch (err) {
 			throw new Error("Failed to load stations: " + err.toString());
 		} finally {
