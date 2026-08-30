@@ -15,9 +15,10 @@ import psycopg2
 import csv
 import re
 from dateutil import parser
+from datetime import datetime
 
-station_url = 'https://dd.weather.gc.ca/hydrometric/doc/hydrometric_StationList.csv'
-reading_url = 'https://dd.weather.gc.ca/hydrometric/csv/{prov}/daily/{prov}_{id}_daily_hydrometric.csv'
+station_url = 'https://dd.weather.gc.ca/today/hydrometric/doc/hydrometric_StationList.csv'
+reading_url = 'https://dd.weather.gc.ca/today/hydrometric/csv/{prov}/daily/{prov}_{id}_daily_hydrometric.csv'
 ddl_create = [
     'create table if not exists readings (rid serial primary key, id text, readtime timestamp, level float, discharge float)',
     "create table if not exists stations (sid serial primary key, id text, name text, prov text, timezone float, lastupdate timestamp, geom geometry('point', 4326))",
@@ -50,6 +51,7 @@ wbt = 'waterbodies'
 
 pguser = 'rob'
 db = 'hydro'
+host = '127.0.0.1'
 
 def download(url, filename):
     '''
@@ -75,7 +77,7 @@ def create_indices(delete = False):
     Delete and create the indices for th time series database.
     '''
 
-    conn = psycopg2.connect('dbname={db} user={pguser}'.format(db = db, pguser = pguser))
+    conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
     try:
         with conn:
@@ -93,8 +95,7 @@ def create_db(delete = False):
     '''
     Delete and create the tables for th time series database.
     '''
-
-    conn = psycopg2.connect('dbname={db} user={pguser}'.format(db = db, pguser = pguser))
+    conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
     try:
         with conn:
@@ -184,7 +185,7 @@ def update_stations():
     '''
     create_db()
 
-    conn = psycopg2.connect('dbname={db} user={pguser}'.format(db = db, pguser = pguser))
+    conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
     try:
         with conn:
@@ -228,7 +229,7 @@ def update_readings():
     '''
     create_db()
 
-    conn = psycopg2.connect('dbname={db} user={pguser}'.format(db = db, pguser = pguser))
+    conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
     try:
         with conn:
