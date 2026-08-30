@@ -23,6 +23,9 @@ ddl_create = [
     'create table if not exists readings (rid serial primary key, id text, readtime timestamp, level float, discharge float)',
     "create table if not exists stations (sid serial primary key, id text, name text, prov text, timezone float, lastupdate timestamp, geom geometry('point', 4326))",
 ]
+ddl_prune = [
+    "delete from readings where extract('days' from now()-readtime) > 3"
+]
 ddl_delete = [
     'drop table if exists readings',
     'drop table if exists stations'
@@ -183,7 +186,7 @@ def update_stations():
     Update the database with the stations.
     Columns:  ID    Name / Nom  Latitude    Longitude   Prov/Terr   Timezone / Fuseau horaire
     '''
-    create_db()
+    print('Udpating stations.')
 
     conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
@@ -227,7 +230,7 @@ def update_readings():
     Update the database with the newest readings.
     Columns: ID Date    Water Level / Niveau d'eau (m)  Grade   Symbol / Symbole    QA/QC   Discharge / Débit (cms) Grade   Symbol / Symbole    QA/QC
     '''
-    create_db()
+    print('Updating readings.')
 
     conn = psycopg2.connect(f'dbname={db} user={pguser} host={host}')
 
@@ -236,6 +239,9 @@ def update_readings():
 
             stations = None
             with conn.cursor() as cur:
+
+                print('Prune readings database.')
+                cur.execute(ddl_prune[0])
 
                 print('Find stations and last updates.')
                 cur.execute('select distinct id, prov, lastupdate from stations where prov is not null order by prov, id')
@@ -290,6 +296,8 @@ def update_readings():
 
                 cur.execute('rollback')
 
+                print('Prune readings database.')
+                cur.execute(ddl_prune[0])
     finally:
         conn.close()
 
@@ -297,7 +305,7 @@ if __name__ == '__main__':
 
     #create_db()
     #create_geometries()
-    #update_stations()
+    update_stations()
     update_readings()
     create_indices()
 
